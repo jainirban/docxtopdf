@@ -1,43 +1,42 @@
 import streamlit as st
 import os
 import tempfile
-import pdfkit
+from weasyprint import HTML
+from docx import Document
 
-# Manually set wkhtmltopdf path (update this path as needed)
-config = pdfkit.configuration(wkhtmltopdf="/usr/bin/wkhtmltopdf")
-
-st.title("DOCX to PDF Converter")
+st.title("📄 DOCX to PDF Converter")
 
 def convert_docx_to_pdf(input_path, output_path):
-    """Convert DOCX to PDF using pdfkit with manual config."""
+    """Convert DOCX to PDF using WeasyPrint."""
     output_pdf = output_path + ".pdf"
-    pdfkit.from_file(input_path, output_pdf, configuration=config)
+    HTML(input_path).write_pdf(output_pdf)
     return output_pdf
 
-uploaded_file = st.file_uploader("Upload a DOCX file", type=["docx"])
+def save_uploaded_file(uploaded_file):
+    """Save uploaded file to a temporary location."""
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file:
+        tmp_file.write(uploaded_file.getbuffer())
+        return tmp_file.name
 
-if uploaded_file is not None:
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        input_path = os.path.join(tmpdirname, uploaded_file.name)
-        output_path = os.path.join(tmpdirname, "converted")
+uploaded_file = st.file_uploader("📂 Upload a DOCX file", type=["docx"])
 
-        # Save uploaded file
-        with open(input_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
+if uploaded_file:
+    temp_docx_path = save_uploaded_file(uploaded_file)
+    output_pdf_path = temp_docx_path.replace(".docx", "")
 
+    try:
         # Convert DOCX to PDF
-        try:
-            pdf_path = convert_docx_to_pdf(input_path, output_path)
+        pdf_path = convert_docx_to_pdf(temp_docx_path, output_pdf_path)
 
-            if os.path.exists(pdf_path):
-                # Display download button
-                with open(pdf_path, "rb") as pdf_file:
-                    st.download_button(label="Download PDF", data=pdf_file, file_name="converted.pdf", mime="application/pdf")
+        if os.path.exists(pdf_path):
+            # Display download button
+            with open(pdf_path, "rb") as pdf_file:
+                st.download_button(label="📥 Download PDF", data=pdf_file, file_name="converted.pdf", mime="application/pdf")
 
-                # Display PDF in Streamlit
-                st.subheader("Preview PDF")
-                st.pdf(pdf_path)
-            else:
-                st.error("PDF conversion failed.")
-        except Exception as e:
-            st.error(f"Error: {e}")
+            # Display PDF in Streamlit
+            st.subheader("📑 Preview PDF")
+            st.pdf(pdf_path)
+        else:
+            st.error("❌ PDF conversion failed.")
+    except Exception as e:
+        st.error(f"❌ Error: {e}")
