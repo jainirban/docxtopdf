@@ -1,0 +1,5 @@
+[server]
+headless = true
+
+[scripts]
+prestart = "setup.sh"  # This will ensure the setup script is run before starting the app
