@@ -1,2 +1,3 @@
 streamlit
 spire.doc
+streamlit-pdf-viewer==0.0.17
