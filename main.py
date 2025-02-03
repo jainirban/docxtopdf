@@ -3,12 +3,15 @@ import os
 import tempfile
 import pdfkit
 
+# Manually set wkhtmltopdf path (update this path as needed)
+config = pdfkit.configuration(wkhtmltopdf="/usr/bin/wkhtmltopdf")
+
 st.title("DOCX to PDF Converter")
 
 def convert_docx_to_pdf(input_path, output_path):
-    """Convert DOCX to PDF using pdfkit."""
+    """Convert DOCX to PDF using pdfkit with manual config."""
     output_pdf = output_path + ".pdf"
-    pdfkit.from_file(input_path, output_pdf)
+    pdfkit.from_file(input_path, output_pdf, configuration=config)
     return output_pdf
 
 uploaded_file = st.file_uploader("Upload a DOCX file", type=["docx"])
