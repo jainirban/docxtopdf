@@ -1,42 +1,53 @@
 import streamlit as st
-import os
-import tempfile
-from weasyprint import HTML
 from docx import Document
+from pdf2image import convert_from_path
+from PIL import Image
+import tempfile
+import os
 
-st.title("📄 DOCX to PDF Converter")
+# Function to convert DOCX to PDF
+def docx_to_pdf(docx_path):
+    # We will use LibreOffice to convert DOCX to PDF in the background
+    os.system(f'libreoffice --headless --convert-to pdf {docx_path}')
+    return docx_path.replace('.docx', '.pdf')
 
-def convert_docx_to_pdf(input_path, output_path):
-    """Convert DOCX to PDF using WeasyPrint."""
-    output_pdf = output_path + ".pdf"
-    HTML(input_path).write_pdf(output_pdf)
-    return output_pdf
+# Function to convert PDF to images (one image per page)
+def pdf_to_images(pdf_path):
+    images = convert_from_path(pdf_path)
+    image_paths = []
+    for idx, image in enumerate(images):
+        temp_image = tempfile.NamedTemporaryFile(delete=False, suffix=f'.page{idx+1}.png')
+        image.save(temp_image, 'PNG')
+        image_paths.append(temp_image.name)
+    return image_paths
 
-def save_uploaded_file(uploaded_file):
-    """Save uploaded file to a temporary location."""
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file:
-        tmp_file.write(uploaded_file.getbuffer())
-        return tmp_file.name
+# Streamlit app
+def main():
+    st.title("DOCX to Image Viewer")
 
-uploaded_file = st.file_uploader("📂 Upload a DOCX file", type=["docx"])
+    uploaded_file = st.file_uploader("Upload your DOCX file", type="docx")
 
-if uploaded_file:
-    temp_docx_path = save_uploaded_file(uploaded_file)
-    output_pdf_path = temp_docx_path.replace(".docx", "")
-
-    try:
+    if uploaded_file:
+        # Save the uploaded DOCX file to a temporary location
+        with open("temp.docx", "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        
         # Convert DOCX to PDF
-        pdf_path = convert_docx_to_pdf(temp_docx_path, output_pdf_path)
+        pdf_path = docx_to_pdf("temp.docx")
 
-        if os.path.exists(pdf_path):
-            # Display download button
-            with open(pdf_path, "rb") as pdf_file:
-                st.download_button(label="📥 Download PDF", data=pdf_file, file_name="converted.pdf", mime="application/pdf")
+        # Convert PDF to images
+        image_paths = pdf_to_images(pdf_path)
 
-            # Display PDF in Streamlit
-            st.subheader("📑 Preview PDF")
-            st.pdf(pdf_path)
-        else:
-            st.error("❌ PDF conversion failed.")
-    except Exception as e:
-        st.error(f"❌ Error: {e}")
+        # Display each image in the app
+        for image_path in image_paths:
+            img = Image.open(image_path)
+            st.image(img, caption=f"Page {image_paths.index(image_path) + 1}")
+
+        # Clean up temporary files
+        os.remove("temp.docx")
+        for image_path in image_paths:
+            os.remove(image_path)
+        os.remove(pdf_path)
+
+if __name__ == "__main__":
+    main()
