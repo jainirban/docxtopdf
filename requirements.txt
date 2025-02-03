@@ -1,3 +1,4 @@
 streamlit
 python-docx
-weasyprint
+pdf2image
+Pillow
