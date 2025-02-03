@@ -6,6 +6,7 @@ pypandoc.download_pandoc()
 
 def convert_docx_to_pdf(input_path, output_path):
     """Convert DOCX to PDF using Pandoc."""
+    pypandoc.download_pandoc()
     output_pdf = output_path + ".pdf"
     pypandoc.convert_file(input_path, 'pdf', outputfile=output_pdf)
     return output_pdf
