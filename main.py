@@ -1,51 +1,61 @@
 import streamlit as st
-from docx import Document
-from PIL import Image, ImageDraw, ImageFont
-import tempfile
+from spire.doc import *
+from spire.doc.common import *
 import os
+import base64
 
-# Function to convert DOCX to images (simplified version)
-def docx_to_images(docx_path):
-    doc = Document(docx_path)
-    image_paths = []
-    
-    for page_num, para in enumerate(doc.paragraphs):
-        # Create an image for each paragraph (as a basic example)
-        img = Image.new('RGB', (800, 600), color='white')
-        draw = ImageDraw.Draw(img)
-        font = ImageFont.load_default()
-        draw.text((10, 10), para.text, fill="black", font=font)
+def convert_to_pdf(docx_file):
+    # Create word document
+    document = Document()
 
-        # Save image to a temporary file
-        temp_image = tempfile.NamedTemporaryFile(delete=False, suffix=f'.page{page_num+1}.png')
-        img.save(temp_image, 'PNG')
-        image_paths.append(temp_image.name)
+    # Load a doc or docx file
+    document.LoadFromFile(docx_file)
 
-    return image_paths
+    # Save the document to PDF
+    output_path = "output/converted_file.pdf"
+    document.SaveToFile(output_path, FileFormat.PDF)
+    document.Close()
+    return output_path
 
-# Streamlit app
-def main():
-    st.title("DOCX to Image Viewer")
+# Streamlit App
+st.title("DOCX to PDF Converter")
 
-    uploaded_file = st.file_uploader("Upload your DOCX file", type="docx")
+uploaded_file = st.file_uploader("Upload a DOCX file", type=["doc", "docx"])
 
-    if uploaded_file:
-        # Save the uploaded DOCX file to a temporary location
-        with open("temp.docx", "wb") as f:
-            f.write(uploaded_file.getbuffer())
+if uploaded_file:
+    st.write("File uploaded successfully. Converting...")
 
-        # Convert DOCX to images (simplified approach)
-        image_paths = docx_to_images("temp.docx")
+    # Save the uploaded file to a temporary location
+    temp_path = "temp_uploaded_document.docx"
+    with open(temp_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
 
-        # Display each image in the app
-        for image_path in image_paths:
-            img = Image.open(image_path)
-            st.image(img, caption=f"Page {image_paths.index(image_path) + 1}")
+    # Convert the DOCX file to PDF
+    pdf_path = convert_to_pdf(temp_path)
 
-        # Clean up temporary files
-        os.remove("temp.docx")
-        for image_path in image_paths:
-            os.remove(image_path)
+    st.write("File converted successfully!")
 
-if __name__ == "__main__":
-    main()
+    # Display the PDF file
+    with open(pdf_path, "rb") as pdf_file:
+        pdf_bytes = pdf_file.read()
+        st.download_button(
+            label="Download PDF",
+            data=pdf_bytes,
+            file_name="converted_file.pdf",
+            mime="application/pdf"
+        )
+        st.write("Use the below link to view PDF:")
+
+        # pdf_bytes = pdf_file.read()
+        pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')
+        # st.write(f"""
+        # <iframe src="data:application/pdf;base64,{pdf_bytes.decode()}" width="700" height="500" type="application/pdf"></iframe>
+        # """, unsafe_allow_html=True)
+        pdf_display = f"""
+        <iframe src="data:application/pdf;base64,{pdf_base64}" width="700" height="900" type="application/pdf"></iframe>
+        """
+        st.markdown(pdf_display, unsafe_allow_html=True)
+
+    # Remove the temporary files (optional)
+    os.remove(temp_path)
+    os.remove(pdf_path)
