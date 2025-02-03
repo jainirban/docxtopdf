@@ -2,6 +2,7 @@ import streamlit as st
 import tempfile
 import os
 import pypandoc
+pypandoc.download_pandoc()
 
 def convert_docx_to_pdf(input_path, output_path):
     """Convert DOCX to PDF using Pandoc."""
