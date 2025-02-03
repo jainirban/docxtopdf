@@ -1,1 +1,4 @@
-pypandoc
+streamlit
+pdfkit
+python-docx
+sudo apt install -y wkhtmltopdf  # For Linux servers
